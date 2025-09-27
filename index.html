@@ -80,10 +80,12 @@ let currentExposure=0;
 
 async function startCamera(){
   try{
-    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}, audio:false});
-    video.srcObject=stream;
+    const constraints={video:{facingMode:'environment'}, audio:false};
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
   }catch(e){
-    alert('Kamera açılamadı: '+e.message);
+    console.error('Kamera açılamadı:', e);
+    alert('Kamera açılamadı: '+e.message+'\nHTTPS ve tarayıcı izinlerini kontrol et.');
   }
 }
 startCamera();
@@ -105,10 +107,12 @@ function applyPreset(imageData){
   const s=PRESETS[currentPreset];
   for(let i=0;i<data.length;i+=4){
     let r=data[i]/255,g=data[i+1]/255,b=data[i+2]/255;
-    r*=s.brightness; g*=s.brightness; b*=s.brightness;
-    r=((r-0.5+saturateExposure())*s.contrast+0.5); 
-    g=((g-0.5+saturateExposure())*s.contrast+0.5); 
-    b=((b-0.5+saturateExposure())*s.contrast+0.5);
+    r*=s.brightness*(1+currentExposure*0.05);
+    g*=s.brightness*(1+currentExposure*0.05);
+    b*=s.brightness*(1+currentExposure*0.05);
+    r=((r-0.5)*s.contrast+0.5); 
+    g=((g-0.5)*s.contrast+0.5); 
+    b=((b-0.5)*s.contrast+0.5);
     const lum=0.2126*r+0.7152*g+0.0722*b;
     r=lum+(r-lum)*s.saturate; g=lum+(g-lum)*s.saturate; b=lum+(b-lum)*s.saturate;
     if(s.sepia>0){
@@ -123,8 +127,6 @@ function applyPreset(imageData){
   }
   return imageData;
 }
-
-function saturateExposure(){ return currentExposure*0.05; }
 
 function applyGrain(){
   if(!lastImage || !grainToggle.checked) return;
@@ -155,6 +157,16 @@ resetBtn.addEventListener('click',()=>{
 
 grainSlider.addEventListener('input',()=>{grainVal.textContent=grainSlider.value;if(lastImage)snapBtn.click();});
 grainToggle.addEventListener('change',()=>{if(lastImage)snapBtn.click();});
-exposureSlider.addEventListener('input',()=>{currentExposure=parseFloat(exposureSlider.value); exposureVal.textContent=currentExposure; if(lastImage)snapBtn.click();});
+exposureSlider.addEventListener('input',()=>{currentExposure=parseFloat(exposureSlider.value); exposureVal.textContent=currentExposure;if(lastImage)snapBtn.click();});
 
-presetContainer.add
+presetContainer.addEventListener('click',e=>{
+  if(e.target.classList.contains('thumbnail')){
+    document.querySelectorAll('.thumbnail').forEach(btn=>btn.classList.remove('selected'));
+    e.target.classList.add('selected');
+    currentPreset=e.target.dataset.preset;
+    if(lastImage)snapBtn.click();
+  }
+});
+</script>
+</body>
+</html>
